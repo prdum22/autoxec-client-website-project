@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoXec — Thread</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+
+    :root {
+      --bg: #08060F;
+      --surface: #110D1E;
+      --card: #170F2B;
+      --card2: #1E1435;
+      --border: #2A1F45;
+      --border2: #3D2D60;
+      --red: #C0000A;
+      --red2: #FF1A25;
+      --red-glow: rgba(192,0,10,.35);
+      --purple: #6B3FA0;
+      --purpleL: #9B8EC4;
+      --text: #EDE8F5;
+      --muted: #9B8EC4;
+      --dim: #5A4F7A;
+      --greenL: #4AE080;
+      --amberL: #E8B84A;
+      --blueL: #4AAAD8;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--purple); }
+
+    /* NAV */
+    .nav {
+      background: rgba(8,6,15,.96);
+      border-bottom: 1px solid var(--border);
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      position: sticky; top: 0;
+      z-index: 200;
+      backdrop-filter: blur(20px);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .nav-logo-text { font-family:'Barlow Condensed',sans-serif; font-size:26px; font-weight:900; letter-spacing:3px; color:#fff; }
+    .nav-logo-text span { color: var(--red); }
+    .nav-tag { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--muted); letter-spacing:2px; border:1px solid var(--border); padding:2px 6px; }
+    .nav-links { display:flex; gap:2px; }
+    .nav-link { padding:6px 12px; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; transition:all .2s; letter-spacing:.3px; }
+    .nav-link:hover { color:var(--text); background:var(--surface); }
+    .nav-link.active { color:var(--red); background:rgba(192,0,10,.08); }
+    .nav-right { display:flex; align-items:center; gap:10px; }
+    .nav-btn { background:var(--red); color:#fff; border:none; padding:8px 18px; font-size:13px; font-weight:700; letter-spacing:1px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; transition:all .2s; }
+    .nav-btn:hover { background:var(--red2); transform:translateY(-1px); }
+    .nav-user-btn { background:var(--surface); border:1px solid var(--border); color:var(--text); padding:6px 14px; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:8px; transition:all .2s; }
+    .nav-user-btn:hover { border-color:var(--purpleL); }
+    .avatar-sm { width:28px; height:28px; border-radius:50% !important; background:linear-gradient(135deg,var(--purple),var(--red)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; font-family:'Barlow Condensed',sans-serif; flex-shrink:0; }
+
+    /* PULSE BANNER */
+    .pulse-banner { display:flex; align-items:stretch; border-bottom:1px solid var(--border); height:36px; overflow:hidden; }
+    .pulse-live-label { background:#000; border-right:1px solid var(--border); padding:0 16px; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .pulse-live-label span { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; color:var(--red); letter-spacing:2px; }
+    .pulse-marquee-wrap { flex:1; overflow:hidden; display:flex; align-items:center; background:linear-gradient(90deg,rgba(192,0,10,.06),rgba(107,63,160,.06)); }
+    .pulse-items { display:flex; gap:40px; animation:marquee 30s linear infinite; white-space:nowrap; padding:0 20px; }
+    @keyframes marquee { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    .pulse-item { display:flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--muted); }
+    .pulse-item .pi-label { color:var(--dim); }
+    .pulse-item .pi-val   { color:var(--purpleL); font-weight:600; }
+    .live-dot { display:inline-block; width:7px; height:7px; background:var(--red); border-radius:50% !important; animation:blink 1.5s infinite; box-shadow:0 0 6px var(--red); flex-shrink:0; }
+    @keyframes blink { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(.8)} }
+
+    /* BREADCRUMB */
+    .breadcrumb {
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--dim);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .breadcrumb a { color: var(--muted); text-decoration: none; cursor: pointer; transition: color .15s; }
+    .breadcrumb a:hover { color: var(--text); }
+    .breadcrumb .sep { color: var(--border2); }
+    .breadcrumb .current { color: var(--purpleL); }
+
+    /* THREAD LAYOUT */
+    .thread-page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 28px 64px;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 28px;
+    }
+
+    /* MAIN COLUMN */
+    .thread-main {}
+
+    /* THREAD HEADER */
+    .thread-header {
+      background: var(--card);
+      border: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+    .thread-header-top {
+      padding: 24px 24px 0;
+    }
+    .th-badges { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+    .badge {
+      font-family:'JetBrains Mono',monospace;
+      font-size:9px; padding:2px 8px;
+      letter-spacing:.8px; font-weight:600;
+      display:inline-flex; align-items:center; gap:3px;
+    }
+    .badge-cat   { background:rgba(107,63,160,.12); color:var(--purpleL); border:1px solid rgba(107,63,160,.3); }
+    .badge-sub   { background:rgba(17,13,30,.8);    color:var(--dim);     border:1px solid var(--border); }
+    .badge-hot   { background:rgba(232,184,74,.1);  color:var(--amberL);  border:1px solid rgba(232,184,74,.25); }
+    .badge-new   { background:rgba(74,224,128,.1);  color:var(--greenL);  border:1px solid rgba(74,224,128,.25); }
+    .badge-pin   { background:rgba(192,0,10,.15);   color:var(--red);     border:1px solid rgba(192,0,10,.3); }
+
+    .thread-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 32px; font-weight: 800;
+      color: #fff; line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .thread-meta {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 24px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .tm-author {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; color: var(--muted);
+    }
+    .tm-author-av {
+      width: 26px; height: 26px;
+      border-radius: 50% !important;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif;
+      color: #fff;
+    }
+    .tm-author-name { color: var(--purpleL); font-weight: 600; font-size: 13px; }
+    .tm-dot { color: var(--border2); }
+    .tm-time { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); }
+    .tm-stats {
+      margin-left: auto;
+      display: flex; gap: 14px;
+    }
+    .tm-stat {
+      font-family:'JetBrains Mono',monospace;
+      font-size:11px; color:var(--dim);
+      display:flex; align-items:center; gap:4px;
+    }
+    .tm-stat span { color:var(--muted); }
+
+    /* THREAD BODY */
+    .thread-body {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top: none;
+      padding: 24px;
+      font-size: 15px;
+      color: var(--text);
+      line-height: 1.8;
+      font-family: 'Barlow', sans-serif;
+      margin-bottom: 2px;
+    }
+    .thread-body p { margin-bottom: 14px; }
+    .thread-body p:last-child { margin-bottom: 0; }
+    .thread-body strong { color: #fff; font-weight: 600; }
+    .thread-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 1px 6px;
+      color: var(--greenL);
+    }
+    .mention-tag {
+      color: var(--purpleL);
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+
+    /* THREAD ACTIONS */
+    .thread-actions {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: none;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .action-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      padding: 6px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 600;
+      letter-spacing: .8px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .action-btn:hover { color: var(--text); border-color: var(--purpleL); background: rgba(107,63,160,.08); }
+    .action-btn.vote-up:hover { color: var(--amberL); border-color: var(--amberL); background: rgba(232,184,74,.06); }
+    .action-btn.voted { color: var(--amberL); border-color: var(--amberL); background: rgba(232,184,74,.08); }
+    .action-sep { width:1px; height:20px; background:var(--border); margin:0 4px; }
+
+    /* REPLIES SECTION */
+    .replies-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .replies-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 20px; font-weight: 700;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .replies-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--dim);
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+    }
+    .sort-wrap {
+      display: flex; gap: 2px;
+    }
+    .sort-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 600;
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--dim);
+      cursor: pointer;
+      transition: all .15s;
+      letter-spacing: .5px;
+    }
+    .sort-btn.active { background: rgba(192,0,10,.1); color: var(--red); border-color: rgba(192,0,10,.3); }
+    .sort-btn:hover:not(.active) { color: var(--text); border-color: var(--purpleL); }
+
+    /* REPLY CARD */
+    .reply-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      margin-bottom: 2px;
+      transition: border-color .2s;
+      animation: fadeUp .35s ease both;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .reply-card:hover { border-color: var(--border2); }
+    .reply-card.highlighted { border-left: 3px solid var(--red); }
+    .reply-inner { display: flex; }
+    .reply-vote-col {
+      width: 52px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 0;
+      gap: 4px;
+      border-right: 1px solid var(--border);
+      background: rgba(17,13,30,.4);
+    }
+    .vote-btn {
+      width: 28px; height: 28px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--dim);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all .15s;
+    }
+    .vote-btn:hover { color: var(--amberL); border-color: var(--amberL); background: rgba(232,184,74,.06); }
+    .vote-btn.active { color: var(--amberL); border-color: var(--amberL); background: rgba(232,184,74,.1); }
+    .vote-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600;
+      color: var(--muted);
+    }
+    .reply-content { flex: 1; padding: 18px 20px; }
+    .reply-head {
+      display: flex; align-items: center;
+      gap: 10px; margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .reply-avatar {
+      width: 26px; height: 26px;
+      border-radius: 50% !important;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif;
+      color: #fff; flex-shrink: 0;
+    }
+    .reply-author { font-weight: 600; font-size: 13px; color: var(--purpleL); }
+    .reply-role {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; padding: 2px 6px;
+      border: 1px solid var(--border);
+      color: var(--dim); letter-spacing: .5px;
+    }
+    .reply-role.mod { border-color: rgba(192,0,10,.3); color: var(--red); background: rgba(192,0,10,.08); }
+    .reply-role.op  { border-color: rgba(232,184,74,.3); color: var(--amberL); background: rgba(232,184,74,.06); }
+    .reply-time {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--dim);
+    }
+    .reply-text {
+      font-size: 14px; color: var(--text);
+      line-height: 1.75;
+      font-family: 'Barlow', sans-serif;
+    }
+    .reply-text p { margin-bottom: 10px; }
+    .reply-text p:last-child { margin-bottom: 0; }
+    .reply-text code { font-family:'JetBrains Mono',monospace; font-size:12px; background:var(--bg); border:1px solid var(--border); padding:1px 6px; color:var(--greenL); }
+    .reply-foot {
+      display: flex; gap: 6px;
+      margin-top: 12px; padding-top: 10px;
+      border-top: 1px solid rgba(42,31,69,.5);
+    }
+    .reply-action {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: .5px;
+      color: var(--dim); cursor: pointer;
+      padding: 4px 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      transition: all .15s;
+    }
+    .reply-action:hover { color: var(--purpleL); border-color: rgba(107,63,160,.3); background: rgba(107,63,160,.06); }
+    .reply-num {
+      margin-left: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--dim);
+      display: flex; align-items: center;
+    }
+
+    /* QUOTE BLOCK */
+    .quote-block {
+      background: var(--bg);
+      border-left: 3px solid var(--purple);
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      font-size: 13px; color: var(--muted);
+      font-style: italic;
+    }
+    .quote-author {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--purpleL);
+      margin-bottom: 4px; font-style: normal;
+    }
+
+    /* PAGINATION */
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin: 20px 0;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .page-btn {
+      width: 34px; height: 34px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .15s;
+    }
+    .page-btn:hover { border-color: var(--purpleL); color: var(--text); background: var(--surface); }
+    .page-btn.active { background: rgba(192,0,10,.12); border-color: rgba(192,0,10,.4); color: var(--red); }
+    .page-info { font-size: 11px; color: var(--dim); padding: 0 8px; }
+
+    /* POST A REPLY */
+    .reply-box-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      margin-top: 4px;
+    }
+    .reply-box-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .rb-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 18px; font-weight: 700;
+    }
+    .rb-user {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .rb-user-av {
+      width: 20px; height: 20px;
+      border-radius: 50% !important;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif;
+      color: #fff;
+    }
+    .reply-box-body { padding: 16px 20px; }
+    .reply-textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      font-size: 14px; color: var(--text);
+      outline: none;
+      font-family: 'Barlow', sans-serif;
+      resize: vertical;
+      min-height: 110px;
+      transition: border-color .2s;
+      display: block;
+    }
+    .reply-textarea::placeholder { color: var(--dim); }
+    .reply-textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 2px rgba(107,63,160,.1); }
+    .reply-box-foot {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .rb-hint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--dim);
+    }
+    .rb-hint span { color: var(--purpleL); }
+    .post-reply-btn {
+      background: var(--red);
+      color: #fff; border: none;
+      padding: 11px 28px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px; font-weight: 800;
+      letter-spacing: 1.5px;
+      cursor: pointer;
+      transition: all .2s;
+      clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%);
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 14px rgba(192,0,10,.3);
+    }
+    .post-reply-btn:hover { background:var(--red2); transform:translateY(-1px); box-shadow:0 6px 20px rgba(192,0,10,.45); }
+    .login-prompt {
+      padding: 20px;
+      text-align: center;
+      font-size: 14px; color: var(--muted);
+      font-family: 'Barlow', sans-serif;
+    }
+    .login-prompt a { color: var(--purpleL); cursor: pointer; font-weight: 600; text-decoration: none; }
+
+    /* REPLY TEXTAREA WRAP for mention positioning */
+    .reply-wrap { position: relative; }
+
+    /* @MENTION DROPDOWN — compact single-line */
+    .mention-drop {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      box-shadow: 0 6px 20px rgba(0,0,0,.75);
+      z-index: 600;
+      display: none;
+      min-width: 190px;
+      max-width: 240px;
+      overflow: hidden;
+    }
+    .mention-drop.show { display: block; animation: fadeIn .12s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    /* Single-line: avatar + username on the same row */
+    .mention-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(42,31,69,.5);
+      transition: background .12s;
+      height: 32px;
+    }
+    .mention-item:last-child { border-bottom: none; }
+    .mention-item:hover { background: var(--surface); }
+    /* Circular — profile picture exception */
+    .mention-avatar {
+      width: 18px; height: 18px;
+      border-radius: 50% !important;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif;
+      color: #fff; flex-shrink: 0;
+    }
+    .mention-username {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; color: var(--purpleL);
+      white-space: nowrap; line-height: 1;
+    }
+
+    /* SIDEBAR */
+    .thread-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+    .sidebar-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .sidebar-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; font-weight: 700;
+      color: var(--dim); letter-spacing: 1.5px;
+      text-transform: uppercase;
+      background: rgba(17,13,30,.5);
+    }
+    .sidebar-card-body { padding: 16px; }
+
+    /* Thread stats sidebar */
+    .stat-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(42,31,69,.4);
+      font-size: 13px;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label-s { color: var(--muted); font-family:'Barlow',sans-serif; }
+    .stat-val-s {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; color: var(--text);
+      font-weight: 600;
+    }
+
+    /* Related threads */
+    .related-item {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(42,31,69,.4);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .related-item:last-child { border-bottom: none; }
+    .related-item:hover .ri-title { color: #fff; }
+    .ri-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 14px; font-weight: 600;
+      color: var(--text); line-height: 1.3;
+      margin-bottom: 4px; transition: color .15s;
+    }
+    .ri-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--dim);
+    }
+
+    /* Active participants */
+    .participant-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(42,31,69,.4);
+    }
+    .participant-row:last-child { border-bottom: none; }
+    .part-av {
+      width: 24px; height: 24px;
+      border-radius: 50% !important;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif;
+      color: #fff; flex-shrink: 0;
+    }
+    .part-name { font-size: 12px; color: var(--text); font-weight: 500; }
+    .part-count { margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); }
+
+    /* Subscribe button */
+    .subscribe-btn {
+      width: 100%;
+      background: rgba(107,63,160,.15);
+      border: 1px solid rgba(107,63,160,.3);
+      color: var(--purpleL);
+      padding: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 1px;
+      cursor: pointer; transition: all .2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-top: 12px;
+    }
+    .subscribe-btn:hover { background:rgba(107,63,160,.25); border-color:var(--purpleL); color:#fff; }
+
+    /* MODALS */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(8,6,15,.92);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      border: 1px solid var(--border2);
+      width: 100%; max-width: 440px;
+      padding: 32px; position: relative;
+      box-shadow: 0 24px 80px rgba(0,0,0,.8);
+      animation: modalIn .3s cubic-bezier(.2,.8,.3,1);
+    }
+    @keyframes modalIn { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .modal-close { position:absolute; top:16px; right:16px; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:14px; cursor:pointer; width:30px; height:30px; display:flex; align-items:center; justify-content:center; transition:all .2s; }
+    .modal-close:hover { color:#fff; background:var(--border2); }
+    .modal-title { font-family:'Barlow Condensed',sans-serif; font-size:28px; font-weight:800; color:#fff; text-align:center; margin-bottom:4px; }
+    .modal-sub { font-size:13px; color:var(--muted); text-align:center; margin-bottom:24px; }
+    .form-group { margin-bottom:14px; }
+    .form-label { display:block; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); margin-bottom:6px; letter-spacing:1px; }
+    .form-input { width:100%; background:var(--bg); border:1px solid var(--border); padding:10px 14px; font-size:14px; color:var(--text); outline:none; font-family:'Barlow',sans-serif; transition:all .2s; }
+    .form-input:focus { border-color:var(--purple); box-shadow:0 0 0 2px rgba(107,63,160,.12); }
+    .form-submit { width:100%; background:var(--red); color:#fff; border:none; padding:13px; font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800; letter-spacing:1.5px; cursor:pointer; margin-top:8px; transition:all .2s; }
+    .form-submit:hover { background:var(--red2); transform:translateY(-1px); }
+    .divider { display:flex; align-items:center; gap:12px; margin:18px 0; }
+    .divider::before,.divider::after { content:''; flex:1; height:1px; background:var(--border); }
+    .divider span { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); }
+    .google-btn { width:100%; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:11px; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; gap:10px; transition:all .2s; font-family:'Barlow',sans-serif; }
+    .google-btn:hover { background:var(--card2); border-color:var(--purpleL); }
+    .switch-modal { text-align:center; margin-top:18px; font-size:13px; color:var(--muted); }
+    .switch-modal a { color:var(--purpleL); cursor:pointer; text-decoration:none; font-weight:600; }
+
+    /* TOAST */
+    .toast { position:fixed; bottom:24px; right:24px; background:var(--card2); border:1px solid var(--border2); border-left:3px solid var(--red); padding:12px 20px; font-size:13px; color:var(--text); z-index:9999; opacity:0; transform:translateY(10px); transition:all .3s; pointer-events:none; box-shadow:0 8px 32px rgba(0,0,0,.5); }
+    .toast.show { opacity:1; transform:translateY(0); }
+
+    @media (max-width: 900px) {
+      .thread-page { grid-template-columns:1fr; }
+      .thread-sidebar { order:2; }
+    }
+    @media (max-width: 600px) {
+      .nav-links { display:none; }
+      .thread-page { padding:20px 16px 48px; }
+      .thread-title { font-size:24px; }
+      .reply-box-foot { flex-direction:column; align-items:stretch; }
+      .post-reply-btn { justify-content:center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo" onclick="window.location='community.html'">
+    <div class="nav-logo-text">AUTO<span>XEC</span></div>
+    <div class="nav-tag">MOBILITY INTELLIGENCE</div>
+  </div>
+  <div class="nav-links">
+    <div class="nav-link" onclick="window.location='index.html'">All</div>
+    <div class="nav-link" onclick="window.location='index.html'">EV &amp; Future</div>
+    <div class="nav-link" onclick="window.location='index.html'">Launches</div>
+    <div class="nav-link" onclick="window.location='index.html'">Engineering</div>
+    <div class="nav-link" onclick="window.location='index.html'">Motorsport</div>
+    <div class="nav-link" onclick="window.location='index.html'">Two-Wheelers</div>
+    <div class="nav-link" onclick="window.location='index.html'">Industry</div>
+    <div class="nav-link active" onclick="window.location='community.html'">Community</div>
+  </div>
+  <div class="nav-right">
+    <div id="navLoggedOut">
+      <button class="nav-btn" onclick="openModal('loginModal')">JOIN FREE</button>
+    </div>
+    <div id="navLoggedIn" style="display:none">
+      <div class="nav-user-btn">
+        <div class="avatar-sm" id="navAvatar">?</div>
+        <span id="navFirstName">User</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- PULSE BANNER -->
+<div class="pulse-banner">
+  <div class="pulse-live-label"><span class="live-dot"></span><span>LIVE</span></div>
+  <div class="pulse-marquee-wrap">
+    <div class="pulse-items">
+      <span class="pulse-item"><span class="pi-label">Trending:</span><span class="pi-val">BE.6e real-world range discussion</span></span>
+      <span class="pulse-item"><span class="pi-label">New reply by</span><span class="pi-val">@ev_freak</span></span>
+      <span class="pulse-item"><span class="pi-label">Hot thread:</span><span class="pi-val">Formula Bharat 2025 monocoque build</span></span>
+      <span class="pulse-item"><span class="pi-label">New thread:</span><span class="pi-val">PPL Training clubs in India 2025</span></span>
+      <span class="pulse-item"><span class="pi-label">Active discussion:</span><span class="pi-val">Triumph 400 valve clearance issue</span></span>
+      <span class="pulse-item"><span class="pi-label">Trending:</span><span class="pi-val">BE.6e real-world range discussion</span></span>
+      <span class="pulse-item"><span class="pi-label">New reply by</span><span class="pi-val">@ev_freak</span></span>
+      <span class="pulse-item"><span class="pi-label">Hot thread:</span><span class="pi-val">Formula Bharat 2025 monocoque build</span></span>
+      <span class="pulse-item"><span class="pi-label">New thread:</span><span class="pi-val">PPL Training clubs in India 2025</span></span>
+      <span class="pulse-item"><span class="pi-label">Active discussion:</span><span class="pi-val">Triumph 400 valve clearance issue</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <a onclick="window.location='community.html'">Community</a>
+  <span class="sep">/</span>
+  <a id="breadCat" onclick="">—</a>
+  <span class="sep">/</span>
+  <span class="current" id="breadSub">—</span>
+</div>
+
+<!-- THREAD PAGE -->
+<div class="thread-page">
+  <div class="thread-main">
+
+    <!-- THREAD HEADER -->
+    <div class="thread-header">
+      <div class="thread-header-top">
+        <div class="th-badges" id="threadBadges"></div>
+        <div class="thread-title" id="threadTitle">Loading thread...</div>
+      </div>
+      <div class="thread-meta">
+        <div class="tm-author">
+          <div class="tm-author-av" id="authorAvatar" style="background:var(--purple)">?</div>
+          <span class="tm-author-name" id="authorName">—</span>
+          <span class="tm-dot">·</span>
+          <span class="tm-time" id="threadTime">—</span>
+        </div>
+        <div class="tm-stats">
+          <div class="tm-stat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="replyCount">0</span></div>
+          <div class="tm-stat"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span id="viewCount">0</span></div>
+          <div class="tm-stat" style="color:var(--amberL)">▲ <span id="voteCount">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- THREAD BODY -->
+    <div class="thread-body" id="threadBody">
+      <div style="color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:13px">Loading...</div>
+    </div>
+
+    <!-- THREAD ACTIONS -->
+    <div class="thread-actions">
+      <button class="action-btn vote-up" id="voteUpBtn" onclick="voteThread()">▲ Upvote <span id="voteLabel">0</span></button>
+      <div class="action-sep"></div>
+      <button class="action-btn" onclick="requireAuth(()=>focusReply())">↩ Reply</button>
+      <button class="action-btn" onclick="shareThread()">⎘ Share</button>
+      <button class="action-btn" onclick="bookmarkThread()">⊞ Save</button>
+    </div>
+
+    <!-- REPLIES -->
+    <div class="replies-header">
+      <div class="replies-title">
+        Replies
+        <span class="replies-count" id="repliesCountLabel">0</span>
+      </div>
+      <div class="sort-wrap">
+        <button class="sort-btn active" onclick="sortReplies('top',this)">TOP</button>
+        <button class="sort-btn" onclick="sortReplies('new',this)">NEW</button>
+        <button class="sort-btn" onclick="sortReplies('old',this)">OLD</button>
+      </div>
+    </div>
+
+    <div id="repliesList"></div>
+
+    <!-- PAGINATION -->
+    <div class="pagination" id="pagination"></div>
+
+    <!-- POST A REPLY -->
+    <div class="reply-box-section" id="replySection">
+      <div class="reply-box-header">
+        <div class="rb-title">Post a Reply</div>
+        <div class="rb-user" id="replyUser" style="display:none">
+          <div class="rb-user-av" id="replyAvatar" style="background:var(--purple)">?</div>
+          <span>as</span>
+          <span id="replyUsername" style="color:var(--purpleL)">@user</span>
+        </div>
+      </div>
+      <div id="replyBoxContent">
+        <div class="login-prompt">
+          <a onclick="openModal('loginModal')">Log in</a> or <a onclick="openModal('registerModal')">join</a> to post a reply.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="thread-sidebar">
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">Thread Stats</div>
+      <div class="sidebar-card-body">
+        <div class="stat-row"><span class="stat-label-s">Replies</span><span class="stat-val-s" id="sideReplies">—</span></div>
+        <div class="stat-row"><span class="stat-label-s">Views</span><span class="stat-val-s" id="sideViews">—</span></div>
+        <div class="stat-row"><span class="stat-label-s">Votes</span><span class="stat-val-s" id="sideVotes">—</span></div>
+        <div class="stat-row"><span class="stat-label-s">Category</span><span class="stat-val-s" id="sideCat" style="color:var(--purpleL)">—</span></div>
+        <div class="stat-row"><span class="stat-label-s">Subtopic</span><span class="stat-val-s" id="sideSub">—</span></div>
+        <button class="subscribe-btn" id="subscribeBtn" onclick="requireAuth(()=>showToast('Subscribed to thread!'))">⊕ Subscribe to Thread</button>
+      </div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">Active Participants</div>
+      <div class="sidebar-card-body" id="participantsList"></div>
+    </div>
+
+    <div class="sidebar-card">
+      <div class="sidebar-card-header">Related Threads</div>
+      <div class="sidebar-card-body" id="relatedList"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('loginModal')">&#10005;</button>
+    <div class="modal-title">Welcome Back</div>
+    <div class="modal-sub">Log in to your AutoXec Community account</div>
+    <div class="form-group"><label class="form-label">EMAIL</label><input type="email" class="form-input" id="loginEmail" placeholder="you@example.com"></div>
+    <div class="form-group"><label class="form-label">PASSWORD</label><input type="password" class="form-input" id="loginPassword" placeholder="••••••••"></div>
+    <button class="form-submit" onclick="handleLogin()">LOG IN</button>
+    <div class="divider"><span>OR CONTINUE WITH</span></div>
+    <button class="google-btn" onclick="handleGoogleAuth()">
+      <svg width="16" height="16" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Sign in with Google
+    </button>
+    <div class="switch-modal">New here? <a onclick="switchModal('loginModal','registerModal')">Join Community &rarr;</a></div>
+  </div>
+</div>
+
+<!-- REGISTER MODAL -->
+<div class="modal-overlay" id="registerModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('registerModal')">&#10005;</button>
+    <div class="modal-title">Join Community</div>
+    <div class="modal-sub">Create your AutoXec Community account — it's free!</div>
+    <div class="form-group"><label class="form-label">FULL NAME</label><input type="text" class="form-input" id="regName" placeholder="John Doe"></div>
+    <div class="form-group"><label class="form-label">USERNAME</label><input type="text" class="form-input" id="regUsername" placeholder="@johndoe"></div>
+    <div class="form-group"><label class="form-label">EMAIL</label><input type="email" class="form-input" id="regEmail" placeholder="you@example.com"></div>
+    <div class="form-group"><label class="form-label">PASSWORD</label><input type="password" class="form-input" id="regPassword" placeholder="Min 6 characters"></div>
+    <button class="form-submit" onclick="handleRegister()">CREATE ACCOUNT</button>
+    <div class="switch-modal" style="margin-top:14px">Already a member? <a onclick="switchModal('registerModal','loginModal')">Log In &rarr;</a></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAOG6aRFmwf0k35s-F3dNEqVMkXWHUrfr4",
+    authDomain: "autoxec-community.firebaseapp.com",
+    projectId: "autoxec-community",
+    storageBucket: "autoxec-community.firebasestorage.app",
+    messagingSenderId: "222421397592",
+    appId: "1:222421397592:web:7ce18084dcfbe95234da2d"
+  };
+
+  let db = null, auth = null, currentUser = null;
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    auth.onAuthStateChanged(handleAuthState);
+  } catch(e) {
+    console.warn("Demo mode");
+  }
+
+  /* URL params */
+  const params   = new URLSearchParams(window.location.search);
+  const threadId = params.get('id') || 'demo1';
+  const catParam = decodeURIComponent(params.get('cat') || 'EV Builders & Tinkering');
+  const subParam = decodeURIComponent(params.get('sub') || 'Battery Chemistry');
+
+  /* @mention users */
+  const MOCK_USERS = [
+    { name:'EV Freak',       username:'ev_freak',       color:'#4AE080' },
+    { name:'Mech Guru',      username:'mech_guru',      color:'#C0000A' },
+    { name:'Engineer Karan', username:'engineer_karan', color:'#6B3FA0' },
+    { name:'Formula Bharat', username:'formula_bharat', color:'#E8B84A' },
+    { name:'Sky Student',    username:'sky_student',    color:'#4AAAD8' },
+    { name:'Yacht Life',     username:'yacht_life',     color:'#4ADADA' },
+    { name:'Rider 99',       username:'rider99',        color:'#9B8EC4' },
+    { name:'ATC Vijay',      username:'atc_vijay',      color:'#E8B84A' },
+    { name:'Design Student', username:'design_student', color:'#FF6B70' },
+    { name:'Coast Captain',  username:'coast_captain',  color:'#4AAAD8' },
+  ];
+
+  /* @mention handler — compact single-line */
+  function handleMentionInput(textarea, dropId) {
+    const drop = document.getElementById(dropId);
+    const before = textarea.value.slice(0, textarea.selectionStart);
+    const match  = before.match(/@(\w*)$/);
+    if (!match) { drop.classList.remove('show'); return; }
+    const q = match[1].toLowerCase();
+    const hits = MOCK_USERS.filter(u =>
+      u.username.toLowerCase().includes(q) || u.name.toLowerCase().includes(q)
+    ).slice(0, 5);
+    if (!hits.length) { drop.classList.remove('show'); return; }
+    drop.innerHTML = hits.map(u => `
+      <div class="mention-item" onmousedown="insertMention(event,'${dropId}','${textarea.id}','${u.username}')">
+        <div class="mention-avatar" style="background:${u.color}">${u.name[0]}</div>
+        <span class="mention-username">@${u.username}</span>
+      </div>`).join('');
+    drop.style.top  = (textarea.offsetHeight - 2) + 'px';
+    drop.style.left = '0';
+    drop.classList.add('show');
+  }
+
+  function insertMention(e, dropId, textareaId, username) {
+    e.preventDefault();
+    const ta   = document.getElementById(textareaId);
+    const drop = document.getElementById(dropId);
+    const pos  = ta.selectionStart;
+    const before   = ta.value.slice(0, pos);
+    const after    = ta.value.slice(pos);
+    const replaced = before.replace(/@\w*$/, '@' + username + ' ');
+    ta.value = replaced + after;
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = replaced.length;
+    drop.classList.remove('show');
+  }
+
+  document.addEventListener('click', e => {
+    document.querySelectorAll('.mention-drop').forEach(d => {
+      if (!d.contains(e.target)) d.classList.remove('show');
+    });
+  });
+
+  /* Mock data */
+  const MOCK_THREAD = {
+    id: 'demo1',
+    title: "Real-world range of the BE.6e — 800V makes a difference?",
+    category: "EV Builders & Tinkering",
+    subtopic: "Battery Chemistry",
+    author: "@ev_freak",
+    authorColor: "#4AE080",
+    time: "2 hours ago",
+    replies: 84, views: 3420, votes: 312,
+    pinned: false, hot: true,
+    body: `<p>I've been running the BE.6e for about 3 weeks now and wanted to share some data points on real-world range vs the claimed 535km ARAI figure.</p>
+<p>My test conditions: Delhi NCR, mixed city + expressway, AC running at 22°C, single occupant, stock tyres at recommended 38 PSI.</p>
+<p><strong>Results so far:</strong></p>
+<p>City only: ~310–330km<br>Highway (100–110 kmph): ~390–410km<br>Mixed 60/40: ~365km</p>
+<p>The 800V architecture does seem to help with regen efficiency at higher speeds — on the Yamuna Expressway I was pulling back ~18% of consumed energy on decelerations. Compared to my previous <code>400V Nexon EV</code> this is noticeably better.</p>
+<p>Anyone else run proper range tests? Curious if Pune/Bangalore folks are seeing similar numbers in different climate conditions.</p>`
+  };
+
+  const MOCK_REPLIES = [
+    { id:'r1', author:'@mech_guru', authorColor:'#C0000A', role:'', time:'1h 45m ago', votes:87, text:`<p>Good data. I ran the BE.6e on the Mumbai-Pune expressway last weekend — 148km stretch at 120 kmph cruise. SOC went from 94% to 41% which works out to ~280km total range at that speed.</p><p>The 800V system really does help at highway speeds where the 400V packs lose more to heat. Measured pack temps stayed under 38°C even on a 32°C day.</p>`, num:1 },
+    { id:'r2', author:'@engineer_karan', authorColor:'#6B3FA0', role:'op', time:'1h 30m ago', votes:64, text:`<p>That Pune data is interesting. I wonder how much of the improvement is 800V vs the newer cell chemistry. The BE.6e uses a different NMC formulation than the Nexon — higher nickel content which should help energy density.</p><p>Would need back-to-back testing on the same route with the same driver to isolate the architecture variable.</p>`, num:2 },
+    { id:'r3', author:'@rider99', authorColor:'#9B8EC4', role:'', time:'55m ago', votes:41, text:`<p>Delhi numbers check out from my side too. One thing I noticed — regen aggressiveness changes above ~80 kmph. Feels like the BMS is tuning the regen threshold to avoid regenerating into a nearly-full pack at speed.</p><p>Has anyone decoded the CAN data on the BE.6e yet? Would love to see actual pack voltage and current during strong regen events.</p>`, num:3 },
+    { id:'r4', author:'@ev_freak', authorColor:'#4AE080', role:'op', time:'40m ago', votes:28, text:`<div class="quote-block"><div class="quote-author">@rider99 said:</div>Has anyone decoded the CAN data on the BE.6e yet?</div><p>Working on it. Got an <code>ELM327</code> adapter on and managed to read a few PIDs but the proprietary frames are still encrypted. I'll post whatever I can pull in the CanBus Hacking subtopic once I have something useful.</p>`, num:4 },
+    { id:'r5', author:'@design_student', authorColor:'#FF6B70', role:'', time:'22m ago', votes:19, text:`<p>Quick note: ARAI test cycle is done at 25°C and no HVAC load. So 535km under those conditions vs 310–330km real-world with AC in Delhi heat is actually a reasonable delta for an NMC pack. Not deceptive advertising — just different test conditions.</p><p>The 40% real-world ARAI ratio is actually one of the better numbers among Indian EVs right now.</p>`, num:5 },
+  ];
+
+  let sortedReplies = [...MOCK_REPLIES];
+  let currentPage   = 1;
+  const REPLIES_PER_PAGE = 10;
+
+  function getFirstName(user) {
+    if (user.displayName) return user.displayName.split(' ')[0];
+    return user.email.split('@')[0].split('.')[0];
+  }
+
+  function handleAuthState(user) {
+    currentUser = user;
+    if (user) {
+      document.getElementById('navLoggedOut').style.display = 'none';
+      document.getElementById('navLoggedIn').style.display  = 'block';
+      document.getElementById('navAvatar').textContent    = (user.displayName||user.email||'U')[0].toUpperCase();
+      document.getElementById('navFirstName').textContent = getFirstName(user);
+      renderReplyBox(user);
+    } else {
+      renderLoginPrompt();
+    }
+  }
+
+  async function handleLogin() {
+    if (!auth) return showToast("Firebase not configured");
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass  = document.getElementById('loginPassword').value;
+    if (!email||!pass) return showToast("Please fill all fields");
+    try { await auth.signInWithEmailAndPassword(email, pass); closeModal('loginModal'); showToast("Welcome back!"); }
+    catch(e) { showToast("Error: " + e.message); }
+  }
+
+  async function handleRegister() {
+    if (!auth) return showToast("Firebase not configured");
+    const name  = document.getElementById('regName').value.trim();
+    const uname = document.getElementById('regUsername').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass  = document.getElementById('regPassword').value;
+    if (!name||!uname||!email||!pass) return showToast("Please fill all fields");
+    try {
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      await cred.user.updateProfile({ displayName: name });
+      closeModal('registerModal');
+      showToast("Welcome to AutoXec, " + name.split(' ')[0] + "!");
+    } catch(e) { showToast("Error: " + e.message); }
+  }
+
+  async function handleGoogleAuth() {
+    if (!auth) return showToast("Firebase not configured");
+    try {
+      await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      closeModal('loginModal'); closeModal('registerModal');
+      showToast("Signed in with Google!");
+    } catch(e) { showToast("Error: " + e.message); }
+  }
+
+  function requireAuth(fn) {
+    if (currentUser) fn();
+    else { openModal('loginModal'); showToast("Please log in to continue"); }
+  }
+
+  function renderReplyBox(user) {
+    const initial   = (user.displayName||user.email||'U')[0].toUpperCase();
+    const firstName = getFirstName(user);
+    const userHandle = '@' + (user.email||'').split('@')[0];
+
+    document.getElementById('replyUser').style.display = 'flex';
+    document.getElementById('replyAvatar').textContent    = initial;
+    document.getElementById('replyUsername').textContent  = userHandle;
+
+    document.getElementById('replyBoxContent').innerHTML = `
+      <div class="reply-box-body">
+        <div class="reply-wrap">
+          <textarea class="reply-textarea" id="replyTextarea"
+            placeholder="Write your reply... Type @ to mention someone"
+            oninput="handleMentionInput(this,'replyMentionDrop')"></textarea>
+          <div class="mention-drop" id="replyMentionDrop"></div>
+        </div>
+      </div>
+      <div class="reply-box-foot">
+        <div class="rb-hint">Tip: type <span>@username</span> to mention &nbsp;·&nbsp; Be specific, cite sources</div>
+        <button class="post-reply-btn" onclick="submitReply()">POST REPLY →</button>
+      </div>`;
+  }
+
+  function renderLoginPrompt() {
+    document.getElementById('replyBoxContent').innerHTML = `
+      <div class="login-prompt">
+        <a onclick="openModal('loginModal')">Log in</a> or <a onclick="openModal('registerModal')">join</a> to post a reply.
+      </div>`;
+  }
+
+  function focusReply() {
+    const ta = document.getElementById('replyTextarea');
+    if (ta) { ta.focus(); ta.scrollIntoView({ behavior:'smooth', block:'center' }); }
+    else openModal('loginModal');
+  }
+
+  function submitReply() {
+    const ta = document.getElementById('replyTextarea');
+    if (!ta || !ta.value.trim()) { showToast("Please write something first"); return; }
+    const text = ta.value.trim();
+    const user = currentUser;
+    const initial = user ? (user.displayName||user.email||'U')[0].toUpperCase() : '?';
+    const handle  = user ? '@' + (user.email||'').split('@')[0] : '@anon';
+
+    const newReply = {
+      id: 'r_' + Date.now(),
+      author: handle,
+      authorColor: '#9B8EC4',
+      role: '',
+      time: 'just now',
+      votes: 0,
+      text: `<p>${text.replace(/\n/g,'</p><p>').replace(/@(\w+)/g,'<span class="mention-tag">@$1</span>')}</p>`,
+      num: MOCK_REPLIES.length + 1
+    };
+
+    sortedReplies.unshift(newReply);
+    ta.value = '';
+    renderReplies();
+    updateCounts(sortedReplies.length);
+    showToast("Reply posted!");
+    window.scrollTo({ top: document.getElementById('repliesList').offsetTop - 80, behavior:'smooth' });
+
+    if (db && currentUser) {
+      db.collection('threads').doc(threadId).collection('replies').add({
+        author: handle, authorId: currentUser.uid,
+        text, createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(()=>{});
+    }
+  }
+
+  function loadThread() {
+    let thread = MOCK_THREAD;
+    if (threadId.startsWith('demo_')) {
+      const saved = sessionStorage.getItem('demo_thread_' + threadId);
+      if (saved) thread = JSON.parse(saved);
+    }
+
+    document.title = `AutoXec — ${thread.title || 'Thread'}`;
+    const cat = catParam || thread.category || '';
+    const sub = subParam || thread.subtopic || '';
+
+    document.getElementById('breadCat').textContent  = cat;
+    document.getElementById('breadSub').textContent  = sub;
+    document.getElementById('breadCat').onclick = () => {
+      window.location = `community.html?tab=categories`;
+    };
+
+    const badgesEl = document.getElementById('threadBadges');
+    badgesEl.innerHTML =
+      (cat ? `<span class="badge badge-cat">${cat}</span>` : '') +
+      (sub ? `<span class="badge badge-sub">${sub}</span>` : '') +
+      (thread.hot   ? '<span class="badge badge-hot">HOT</span>' : '') +
+      (thread.pinned? '<span class="badge badge-pin">PINNED</span>' : '');
+
+    document.getElementById('threadTitle').textContent = thread.title || 'Untitled Thread';
+    document.getElementById('authorAvatar').textContent = (thread.author||'?')[1]?.toUpperCase() || '?';
+    document.getElementById('authorAvatar').style.background = thread.authorColor || '#6B3FA0';
+    document.getElementById('authorName').textContent  = thread.author || '—';
+    document.getElementById('threadTime').textContent  = thread.time || thread.lastActivity || '—';
+    document.getElementById('threadBody').innerHTML     = thread.body || `<p>${thread.title || ''}</p>`;
+
+    updateCounts(thread.replies || sortedReplies.length, thread.views || 3420, thread.votes || 0);
+
+    document.getElementById('sideCat').textContent = cat;
+    document.getElementById('sideSub').textContent = sub;
+
+    renderReplies();
+    renderParticipants();
+    renderRelated();
+  }
+
+  function updateCounts(replies, views, votes) {
+    const r = replies !== undefined ? replies : sortedReplies.length;
+    const v = views   !== undefined ? views   : 3420;
+    const vt= votes   !== undefined ? votes   : MOCK_THREAD.votes;
+    document.getElementById('replyCount').textContent  = formatNum(r);
+    document.getElementById('viewCount').textContent   = formatNum(v);
+    document.getElementById('voteCount').textContent   = formatNum(vt);
+    document.getElementById('voteLabel').textContent   = formatNum(vt);
+    document.getElementById('repliesCountLabel').textContent = r;
+    document.getElementById('sideReplies').textContent = formatNum(r);
+    document.getElementById('sideViews').textContent   = formatNum(v);
+    document.getElementById('sideVotes').textContent   = formatNum(vt);
+  }
+
+  function renderReplies() {
+    const list  = document.getElementById('repliesList');
+    const start = (currentPage - 1) * REPLIES_PER_PAGE;
+    const page  = sortedReplies.slice(start, start + REPLIES_PER_PAGE);
+
+    if (!page.length) {
+      list.innerHTML = `<div style="padding:32px;text-align:center;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--border)">No replies yet. Be the first to contribute!</div>`;
+      renderPagination();
+      return;
+    }
+
+    list.innerHTML = page.map((r, i) => `
+    <div class="reply-card${r.highlighted?' highlighted':''}" style="animation-delay:${i*.04}s">
+      <div class="reply-inner">
+        <div class="reply-vote-col">
+          <button class="vote-btn" onclick="voteReply('${r.id}',1,this)">▲</button>
+          <div class="vote-count" id="vc_${r.id}">${r.votes||0}</div>
+          <button class="vote-btn" onclick="voteReply('${r.id}',-1,this)" style="font-size:11px">▼</button>
+        </div>
+        <div class="reply-content">
+          <div class="reply-head">
+            <div class="reply-avatar" style="background:${r.authorColor||'#6B3FA0'}">${(r.author||'?')[1]?.toUpperCase()||'?'}</div>
+            <span class="reply-author">${r.author||'Anonymous'}</span>
+            ${r.role==='op'  ? '<span class="reply-role op">OP</span>' : ''}
+            ${r.role==='mod' ? '<span class="reply-role mod">MOD</span>' : ''}
+            <span class="reply-time">${r.time||'—'}</span>
+          </div>
+          <div class="reply-text">${r.text||''}</div>
+          <div class="reply-foot">
+            <button class="reply-action" onclick="requireAuth(()=>quoteReply('${r.id}','${(r.author||'').replace(/'/g,'\\\'')}'  ))">↩ Quote</button>
+            <button class="reply-action" onclick="requireAuth(()=>mentionReply('${(r.author||'').replace(/'/g,'\\\'') }'))">@ Mention</button>
+            <button class="reply-action" onclick="showToast('Reply reported')">⚑ Report</button>
+            <div class="reply-num">#${r.num||i+1}</div>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+
+    renderPagination();
+  }
+
+  function renderPagination() {
+    const total = Math.ceil(sortedReplies.length / REPLIES_PER_PAGE);
+    const pg = document.getElementById('pagination');
+    if (total <= 1) { pg.innerHTML=''; return; }
+    let html = `<button class="page-btn" onclick="changePage(${currentPage-1})" ${currentPage===1?'disabled style="opacity:.4"':''}>‹</button>`;
+    for (let i=1; i<=total; i++) {
+      html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="changePage(${i})">${i}</button>`;
+    }
+    html += `<button class="page-btn" onclick="changePage(${currentPage+1})" ${currentPage===total?'disabled style="opacity:.4"':''}>›</button>`;
+    html += `<span class="page-info">Page ${currentPage} of ${total}</span>`;
+    pg.innerHTML = html;
+  }
+
+  function changePage(p) {
+    const total = Math.ceil(sortedReplies.length / REPLIES_PER_PAGE);
+    if (p < 1 || p > total) return;
+    currentPage = p;
+    renderReplies();
+    document.getElementById('repliesList').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function sortReplies(by, btn) {
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (by==='top') sortedReplies = [...MOCK_REPLIES].sort((a,b)=>(b.votes||0)-(a.votes||0));
+    if (by==='new') sortedReplies = [...MOCK_REPLIES].sort((a,b)=>(b.num||0)-(a.num||0));
+    if (by==='old') sortedReplies = [...MOCK_REPLIES].sort((a,b)=>(a.num||0)-(b.num||0));
+    currentPage = 1;
+    renderReplies();
+  }
+
+  function voteReply(id, dir, btn) {
+    if (!currentUser) { openModal('loginModal'); return; }
+    const vcEl = document.getElementById('vc_' + id);
+    if (!vcEl) return;
+    const current = parseInt(vcEl.textContent)||0;
+    vcEl.textContent = current + dir;
+    btn.classList.toggle('active');
+  }
+
+  function voteThread() {
+    if (!currentUser) { openModal('loginModal'); return; }
+    const btn = document.getElementById('voteUpBtn');
+    btn.classList.toggle('voted');
+    const vc  = document.getElementById('voteCount');
+    const vl  = document.getElementById('voteLabel');
+    const sv  = document.getElementById('sideVotes');
+    const cur = parseInt(vc.textContent.replace(/[KM]/g,''))*( vc.textContent.includes('K')?1000:1 );
+    const newV = btn.classList.contains('voted') ? cur+1 : cur-1;
+    vc.textContent = vl.textContent = sv.textContent = formatNum(newV);
+    showToast(btn.classList.contains('voted') ? "Upvoted!" : "Vote removed");
+  }
+
+  function quoteReply(id, author) {
+    const ta = document.getElementById('replyTextarea');
+    if (!ta) return;
+    const card = document.getElementById('repliesList').querySelector(`[data-id="${id}"]`);
+    ta.value = `@${author} `;
+    ta.focus();
+    ta.scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  function mentionReply(author) {
+    const ta = document.getElementById('replyTextarea');
+    if (!ta) return;
+    ta.value += `${author} `;
+    ta.focus();
+  }
+
+  function shareThread() {
+    if (navigator.share) {
+      navigator.share({ title: MOCK_THREAD.title, url: window.location.href });
+    } else {
+      navigator.clipboard.writeText(window.location.href).then(() => showToast("Link copied!"));
+    }
+  }
+
+  function bookmarkThread() {
+    requireAuth(() => showToast("Thread saved to your bookmarks!"));
+  }
+
+  function renderParticipants() {
+    const participants = [
+      { name:'EV Freak',       color:'#4AE080', count:'12 replies' },
+      { name:'Mech Guru',      color:'#C0000A', count:'8 replies'  },
+      { name:'Engineer Karan', color:'#6B3FA0', count:'5 replies'  },
+      { name:'Rider 99',       color:'#9B8EC4', count:'3 replies'  },
+      { name:'Design Student', color:'#FF6B70', count:'2 replies'  },
+    ];
+    document.getElementById('participantsList').innerHTML = participants.map(p=>`
+    <div class="participant-row">
+      <div class="part-av" style="background:${p.color}">${p.name[0]}</div>
+      <span class="part-name">${p.name}</span>
+      <span class="part-count">${p.count}</span>
+    </div>`).join('');
+  }
+
+  function renderRelated() {
+    const related = [
+      { title:"LFP vs NMC thermal degradation — Indian summer data",     sub:"Battery Chemistry",  replies:34  },
+      { title:"Tata Nexon EV CAN bus decoding thread",                   sub:"CanBus Hacking",     replies:67  },
+      { title:"800V vs 400V efficiency at highway speeds — test data",    sub:"Thermal Management", replies:28  },
+      { title:"Real regen figures on Indian highways — community thread", sub:"Regen Braking",      replies:51  },
+    ];
+    document.getElementById('relatedList').innerHTML = related.map(r=>`
+    <div class="related-item" onclick="showToast('Opening related thread...')">
+      <div class="ri-title">${r.title}</div>
+      <div class="ri-meta">${r.sub} &middot; ${r.replies} replies</div>
+    </div>`).join('');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadThread();
+    document.querySelectorAll('.modal-overlay').forEach(o => {
+      o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); });
+    });
+    if (!currentUser) renderLoginPrompt();
+  });
+
+  function openModal(id)    { document.getElementById(id).classList.add('open'); }
+  function closeModal(id)   { document.getElementById(id).classList.remove('open'); }
+  function switchModal(a,b) { closeModal(a); openModal(b); }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  function formatNum(n) {
+    n = Number(n) || 0;
+    if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+    if (n >= 1000)    return (n/1000).toFixed(1)+'K';
+    return String(n);
+  }
+</script>
+</body>
+</html>

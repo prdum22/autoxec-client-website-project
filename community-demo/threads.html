@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoXec — Thread</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    :root {
+      --bg: #08060F; --surface: #110D1E; --card: #170F2B;
+      --border: #2A1F45; --red: #C0000A; --red2: #FF1A25;
+      --purple: #6B3FA0; --purpleL: #9B8EC4;
+      --text: #EDE8F5; --muted: #8B7DB5; --dim: #5A4F7A;
+      --green: #1A7A3C; --amber: #A06010; --blue: #0D4B8A; --teal: #0A6060;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Barlow', sans-serif; font-size: 15px; line-height: 1.6; min-height: 100vh }
+    .mono { font-family: 'JetBrains Mono', monospace }
+
+    /* NAV */
+    .nav { background: rgba(8,6,15,.97); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 200 }
+    .nav-logo { display: flex; align-items: center; gap: 10px; cursor: pointer }
+    .nav-logo-text { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: 2px; color: #fff }
+    .nav-logo-text span { color: var(--red) }
+    .nav-tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--muted); letter-spacing: 2px; border: 1px solid var(--border); padding: 2px 6px }
+    .nav-right { display: flex; align-items: center; gap: 12px }
+    .nav-btn { background: var(--red); color: #fff; border: none; padding: 7px 16px; font-size: 13px; font-weight: 600; letter-spacing: 1px; cursor: pointer; font-family: 'Barlow Condensed', sans-serif; border-radius: 2px }
+    .nav-user-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; font-size: 13px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 8px }
+    .avatar-sm { width: 26px; height: 26px; border-radius: 50%; background: var(--purple); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff }
+
+    /* BREADCRUMB */
+    .breadcrumb { padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim) }
+    .bc-link { cursor: pointer; color: var(--muted); transition: color .15s }
+    .bc-link:hover { color: var(--text) }
+    .bc-sep { color: var(--border) }
+    .bc-current { color: var(--purpleL) }
+
+    /* MAIN LAYOUT */
+    .page-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px; display: grid; grid-template-columns: 1fr 280px; gap: 24px; align-items: start }
+
+    /* THREAD HEADER */
+    .thread-header { margin-bottom: 20px }
+    .thread-badges { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap }
+    .badge { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 3px 8px; border-radius: 2px; letter-spacing: 1px }
+    .badge-cat { background: rgba(107,63,160,.15); color: var(--purpleL); border: 1px solid rgba(107,63,160,.25) }
+    .badge-sub { background: rgba(26,122,60,.15); color: #4AE080; border: 1px solid rgba(26,122,60,.25) }
+    .badge-pin { background: rgba(192,0,10,.15); color: var(--red); border: 1px solid rgba(192,0,10,.25) }
+    .badge-hot { background: rgba(160,96,16,.2); color: #E8B84A; border: 1px solid rgba(160,96,16,.3) }
+    .badge-solved { background: rgba(10,96,96,.2); color: #4ADADA; border: 1px solid rgba(10,96,96,.3) }
+    .thread-title { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; font-weight: 800; letter-spacing: .3px; color: #fff; line-height: 1.15; margin-bottom: 12px }
+    .thread-title-meta { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim) }
+    .thread-votes { display: flex; align-items: center; gap: 6px }
+    .vote-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: all .2s; font-family: 'JetBrains Mono', monospace }
+    .vote-btn:hover { border-color: var(--purpleL); color: var(--text) }
+    .vote-btn.upvoted { border-color: var(--red); color: var(--red); background: rgba(192,0,10,.08) }
+    .vote-count { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: #fff; min-width: 28px; text-align: center }
+
+    /* CARDS */
+    .op-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 16px }
+    .op-card.pinned-op { border-top: 3px solid var(--red) }
+    .post-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 20px 0 }
+    .post-author { display: flex; align-items: center; gap: 12px }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--red)); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; color: #fff; font-family: 'Barlow Condensed', sans-serif; flex-shrink: 0; border: 2px solid var(--border) }
+    .avatar.op-avatar { border-color: var(--red) }
+    .author-name { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; color: #fff }
+    .author-role { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); letter-spacing: .5px }
+    .post-actions-top { display: flex; gap: 6px }
+    .pa-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; font-family: 'JetBrains Mono', monospace; transition: all .2s }
+    .pa-btn:hover { border-color: var(--purpleL); color: var(--text) }
+    .post-body { padding: 16px 20px 20px }
+    .post-text { font-size: 15px; color: var(--text); line-height: 1.75; white-space: pre-wrap; word-break: break-word }
+    .post-text .mention { color: var(--purpleL); font-weight: 600; cursor: pointer }
+    .post-text .mention:hover { text-decoration: underline }
+    .post-footer { padding: 10px 20px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between }
+    .post-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim) }
+    .post-reactions { display: flex; gap: 8px; align-items: center }
+    .react-btn { background: var(--bg); border: 1px solid var(--border); color: var(--muted); padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: 12px; transition: all .2s; display: flex; align-items: center; gap: 5px }
+    .react-btn:hover { border-color: var(--purpleL); color: var(--text) }
+    .react-btn.reacted { border-color: var(--red); color: var(--red); background: rgba(192,0,10,.08) }
+    .like-count { font-family: 'JetBrains Mono', monospace; font-size: 11px }
+
+    /* REPLY CARD */
+    .reply-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; overflow: hidden; transition: border-color .2s }
+    .reply-card:hover { border-color: rgba(107,63,160,.3) }
+    .reply-card.op-reply { border-left: 3px solid var(--red) }
+    .reply-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); padding: 12px 20px 0; letter-spacing: 1px }
+    .reply-quote { background: rgba(107,63,160,.08); border: 1px solid rgba(107,63,160,.2); border-radius: 4px; padding: 10px 14px; margin: 0 20px 0; font-size: 13px; color: var(--muted); border-left: 3px solid var(--purple) }
+    .reply-quote-author { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--purpleL); margin-bottom: 4px }
+
+    /* REPLIES SECTION */
+    .replies-section { margin-bottom: 20px }
+    .replies-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px }
+    .replies-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; color: #fff }
+    .replies-sort { display: flex; gap: 6px }
+    .rs-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 20px; cursor: pointer; font-size: 11px; font-family: 'JetBrains Mono', monospace; transition: all .2s }
+    .rs-btn.active { background: var(--purple); border-color: var(--purple); color: #fff }
+    .rs-btn:hover:not(.active) { border-color: var(--purpleL); color: var(--text) }
+
+    /* REPLY COMPOSER */
+    .reply-composer { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-top: 20px }
+    .rc-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px }
+    .rc-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; color: #fff }
+    .rc-body { padding: 16px 20px }
+    .reply-textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); padding: 12px 14px; border-radius: 4px; font-size: 14px; color: var(--text); outline: none; font-family: 'Barlow', sans-serif; resize: vertical; min-height: 110px; transition: border-color .2s; line-height: 1.65 }
+    .reply-textarea:focus { border-color: var(--purple) }
+    .reply-textarea::placeholder { color: var(--dim) }
+
+    /* MENTION POPUP — floats at cursor position */
+    .mention-popup {
+      position: absolute;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      z-index: 200;
+      min-width: 180px;
+      max-width: 240px;
+      display: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,.7);
+      overflow: hidden;
+    }
+    .mention-popup.show { display: block }
+    .mp-item { padding: 9px 14px; cursor: pointer; font-size: 13px; color: var(--text); border-bottom: 1px solid var(--border); transition: background .15s; display: flex; flex-direction: column; gap: 2px }
+    .mp-item:last-child { border-bottom: none }
+    .mp-item:hover { background: var(--surface) }
+    .mp-username { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--purpleL) }
+
+    .rc-footer { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; border-top: 1px solid var(--border) }
+    .char-count { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--dim) }
+    .submit-reply { background: var(--red); color: #fff; border: none; padding: 9px 20px; font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: 1px; cursor: pointer; border-radius: 4px; transition: background .2s }
+    .submit-reply:hover { background: var(--red2) }
+    .submit-reply:disabled { opacity: .5; cursor: not-allowed }
+
+    .login-prompt { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 20px; text-align: center; margin-top: 8px }
+    .login-prompt-text { font-size: 14px; color: var(--muted); margin-bottom: 12px }
+    .lp-btn { background: var(--red); color: #fff; border: none; padding: 9px 20px; font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; border-radius: 4px }
+
+    /* SIDEBAR */
+    .sidebar-col { display: flex; flex-direction: column; gap: 16px }
+    .sidebar-card { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden }
+    .sc-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim); letter-spacing: 2px; text-transform: uppercase }
+    .sc-body { padding: 14px 16px }
+
+    .related-item { padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer }
+    .related-item:last-child { border-bottom: none }
+    .ri-title { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); line-height: 1.2; margin-bottom: 3px; transition: color .2s }
+    .related-item:hover .ri-title { color: var(--red) }
+    .ri-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim) }
+
+    .members-list { display: flex; flex-direction: column; gap: 8px }
+    .member-row { display: flex; align-items: center; gap: 10px; cursor: pointer; transition: opacity .2s }
+    .member-row:hover { opacity: .8 }
+    .member-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--blue)); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; font-family: 'Barlow Condensed', sans-serif; flex-shrink: 0 }
+    .member-name { font-size: 13px; font-weight: 500; color: var(--text) }
+    .member-stat { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--dim) }
+    .online-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4AE080; margin-right: 4px; vertical-align: middle }
+
+    /* SHARE BUTTONS — icon style */
+    .share-btns { display: flex; flex-direction: column; gap: 8px }
+    .share-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 10px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all .2s;
+      font-family: 'Barlow', sans-serif;
+      font-weight: 500;
+      text-align: left;
+    }
+    .share-btn:hover { border-color: var(--purpleL); color: var(--text); background: rgba(107,63,160,.08) }
+    .share-btn .sb-icon {
+      width: 30px; height: 30px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .share-btn .sb-icon.link  { background: rgba(107,63,160,.2); color: var(--purpleL) }
+    .share-btn .sb-icon.twitter { background: rgba(0,0,0,.5); color: #fff }
+    .share-btn .sb-icon.whatsapp { background: rgba(37,211,102,.15); color: #25D366 }
+    .share-btn .sb-label { display: flex; flex-direction: column; gap: 1px }
+    .share-btn .sb-label span:first-child { font-size: 13px; font-weight: 600 }
+    .share-btn .sb-label span:last-child { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--dim); letter-spacing: .5px }
+
+    /* PAGINATION */
+    .reply-pagination { display: flex; justify-content: center; gap: 6px; padding: 20px 0 }
+    .rp-btn { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 13px; color: var(--muted); background: transparent; transition: all .2s; font-family: 'JetBrains Mono', monospace }
+    .rp-btn:hover { border-color: var(--purpleL); color: var(--text) }
+    .rp-btn.active { background: var(--red); border-color: var(--red); color: #fff }
+
+    /* LOADING */
+    .loading-state { padding: 40px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted) }
+    .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--red); border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 8px }
+    @keyframes spin { to { transform: rotate(360deg) } }
+
+    /* TOAST */
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--red); padding: 10px 18px; font-size: 13px; color: var(--text); z-index: 9999; opacity: 0; transform: translateY(6px); transition: all .3s; pointer-events: none; border-radius: 4px }
+    .toast.show { opacity: 1; transform: translateY(0) }
+
+    /* LIVE BADGE */
+    .live-badge { display: inline-flex; align-items: center; gap: 5px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--red); background: rgba(192,0,10,.08); border: 1px solid rgba(192,0,10,.2); padding: 3px 8px; border-radius: 20px; margin-left: 10px }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); animation: pulse 1.5s infinite }
+    @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+
+    @media(max-width:860px) {
+      .page-wrap { grid-template-columns: 1fr; padding: 16px }
+      .sidebar-col { display: none }
+      .thread-title { font-size: 26px }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo" onclick="window.location='index.html'">
+    <div class="nav-logo-text">AUTO<span>XEC</span></div>
+    <div class="nav-tag mono">MOBILITY INTELLIGENCE</div>
+  </div>
+  <div class="nav-right">
+    <div id="navLoggedOut"><button class="nav-btn" onclick="window.location='community.html'">JOIN</button></div>
+    <div id="navLoggedIn" style="display:none">
+      <div class="nav-user-btn">
+        <div class="avatar-sm" id="navAvatar">?</div>
+        <span id="navUsername">User</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <span class="bc-link" onclick="window.location='community.html'">Community</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-link" id="bcCat" onclick="goBack()">Category</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-link" id="bcSub" onclick="goBack()">Subtopic</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-current" id="bcTitle">Thread</span>
+</div>
+
+<!-- PAGE WRAP -->
+<div class="page-wrap">
+
+  <!-- THREAD + REPLIES COLUMN -->
+  <div class="thread-col">
+    <div id="loadingState" class="loading-state">
+      <div class="spinner"></div>
+      <div>Loading thread…</div>
+    </div>
+
+    <div id="threadHeader" class="thread-header" style="display:none">
+      <div class="thread-badges" id="threadBadges"></div>
+      <h1 class="thread-title" id="threadTitle"></h1>
+      <div class="thread-title-meta">
+        <div class="thread-votes">
+          <button class="vote-btn" id="upvoteBtn" onclick="voteThread(1)">▲ Upvote</button>
+          <span class="vote-count" id="voteCount">0</span>
+          <button class="vote-btn" onclick="voteThread(-1)">▼</button>
+        </div>
+        <span id="threadViewCount">0 views</span>
+        <span id="threadReplyCount">0 replies</span>
+        <span id="threadDate"></span>
+        <span class="live-badge"><span class="live-dot"></span>LIVE</span>
+      </div>
+    </div>
+
+    <div id="opCard" style="display:none"></div>
+
+    <div class="replies-section" id="repliesSection" style="display:none">
+      <div class="replies-header">
+        <div>
+          <span class="replies-title">Replies</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);margin-left:8px" id="replyCountLabel">0</span>
+        </div>
+        <div class="replies-sort">
+          <button class="rs-btn active" onclick="setSortReplies('oldest',this)">Oldest</button>
+          <button class="rs-btn" onclick="setSortReplies('newest',this)">Newest</button>
+          <button class="rs-btn" onclick="setSortReplies('top',this)">Top</button>
+        </div>
+      </div>
+      <div id="repliesList"></div>
+      <div class="reply-pagination" id="replyPagination"></div>
+    </div>
+
+    <div id="composerSection"></div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar-col">
+    <!-- Thread Stats -->
+    <div class="sidebar-card">
+      <div class="sc-header">Thread Stats</div>
+      <div class="sc-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff" id="sideReplies">—</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px">REPLIES</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff" id="sideViews">—</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px">VIEWS</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--red)" id="sideVotes">—</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px">VOTES</div>
+          </div>
+          <div style="text-align:center;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#4AE080" id="sideParticipants">—</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--dim);letter-spacing:1px">MEMBERS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share — with icons -->
+    <div class="sidebar-card">
+      <div class="sc-header">Share Thread</div>
+      <div class="sc-body">
+        <div class="share-btns">
+
+          <div class="share-btn" onclick="copyLink()">
+            <div class="sb-icon link">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+              </svg>
+            </div>
+            <div class="sb-label">
+              <span>Copy Link</span>
+              <span>Share thread URL</span>
+            </div>
+          </div>
+
+          <div class="share-btn" onclick="shareTwitter()">
+            <div class="sb-icon twitter">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+              </svg>
+            </div>
+            <div class="sb-label">
+              <span>Share on X</span>
+              <span>Post to Twitter / X</span>
+            </div>
+          </div>
+
+          <div class="share-btn" onclick="shareWhatsApp()">
+            <div class="sb-icon whatsapp">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+              </svg>
+            </div>
+            <div class="sb-label">
+              <span>Share on WhatsApp</span>
+              <span>Send to contacts</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Related Threads -->
+    <div class="sidebar-card">
+      <div class="sc-header">Related Threads</div>
+      <div class="sc-body" id="relatedThreads">
+        <div style="color:var(--muted);font-size:13px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Active Members -->
+    <div class="sidebar-card">
+      <div class="sc-header">Active in Thread</div>
+      <div class="sc-body">
+        <div class="members-list" id="activeMembersList"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- FIREBASE SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAOG6aRFmwf0k35s-F3dNEqVMkXWHUrfr4",
+    authDomain: "autoxec-community.firebaseapp.com",
+    projectId: "autoxec-community",
+    storageBucket: "autoxec-community.firebasestorage.app",
+    messagingSenderId: "222421397592",
+    appId: "1:222421397592:web:7ce18084dcfbe95234da2d",
+    measurementId: "G-87MC6PBM8C"
+  };
+
+  let db = null, auth = null, currentUser = null;
+  let unsubscribeReplies = null;
+
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      if (user) {
+        document.getElementById('navLoggedOut').style.display = 'none';
+        document.getElementById('navLoggedIn').style.display = 'block';
+        const initial = (user.displayName || user.email || 'U')[0].toUpperCase();
+        document.getElementById('navAvatar').textContent = initial;
+
+        // Fetch @username from Firestore
+        if (db) {
+          db.collection('users').doc(user.uid).get()
+            .then(doc => {
+              const uname = (doc.exists && doc.data().username)
+                ? '@' + doc.data().username
+                : '@' + user.email.split('@')[0];
+              document.getElementById('navUsername').textContent = uname;
+            })
+            .catch(() => {
+              document.getElementById('navUsername').textContent = '@' + user.email.split('@')[0];
+            });
+        } else {
+          document.getElementById('navUsername').textContent = '@' + user.email.split('@')[0];
+        }
+      }
+      renderComposer();
+    });
+  } catch (e) { console.warn("Firebase not configured — demo mode"); }
+
+  // URL PARAMS
+  const params = new URLSearchParams(window.location.search);
+  const THREAD_ID = params.get('id');
+  const CAT = decodeURIComponent(params.get('cat') || '');
+  const SUB = decodeURIComponent(params.get('sub') || '');
+
+  const REPLIES_PER_PAGE = 20;
+  let allReplies = [];
+  let currentReplyPage = 1;
+  let replySort = 'oldest';
+  let threadData = null;
+  let userVoted = false;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('bcCat').textContent = CAT || 'Category';
+    document.getElementById('bcSub').textContent = SUB || 'Subtopic';
+    if (THREAD_ID) {
+      loadThread();
+    } else {
+      loadMockThread();
+    }
+    renderComposer();
+  });
+
+  function goBack() {
+    window.location = `threads.html?cat=${encodeURIComponent(CAT)}&sub=${encodeURIComponent(SUB)}`;
+  }
+
+  // LOAD THREAD
+  async function loadThread() {
+    if (!db) { loadMockThread(); return; }
+    try {
+      const doc = await db.collection('threads').doc(THREAD_ID).get();
+      if (!doc.exists) { showError("Thread not found"); return; }
+      threadData = { id: doc.id, ...doc.data() };
+      renderThread(threadData);
+      db.collection('threads').doc(THREAD_ID).update({
+        views: firebase.firestore.FieldValue.increment(1)
+      }).catch(() => {});
+      startRepliesListener();
+    } catch (e) {
+      console.error(e);
+      loadMockThread();
+    }
+  }
+
+  function startRepliesListener() {
+    if (!db || !THREAD_ID) return;
+    if (unsubscribeReplies) unsubscribeReplies();
+    unsubscribeReplies = db.collection('threads').doc(THREAD_ID)
+      .collection('replies')
+      .orderBy('createdAt', 'asc')
+      .onSnapshot(snap => {
+        allReplies = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderReplies();
+        updateThreadStats();
+      }, err => console.error(err));
+  }
+
+  // MOCK DATA
+  function loadMockThread() {
+    threadData = {
+      id: 'mock',
+      title: "Real-world performance in Indian summer — field data from 6 months",
+      body: `I've been collecting data for 6 months now across three different climate zones in India — Delhi (extreme heat), Pune (moderate), and Chennai (high humidity). Here's what I found.\n\n@ev_freak you mentioned earlier that thermal management is the key factor, and my data confirms this. The numbers are surprising.\n\nKey findings:\n1. Temperature above 42°C causes a consistent 18% range reduction\n2. Overnight charging in summer brings efficiency back to baseline\n3. The thermal cutoff activates at 46°C ambient, not 45°C as stated in the manual\n\nFull dataset in the attached spreadsheet. Happy to discuss methodology — @mech_guru @engineer_karan please weigh in on the sensor placement approach.`,
+      author: '@ev_freak',
+      authorId: 'user1',
+      category: CAT || 'EV Builders & Tinkering',
+      subtopic: SUB || 'Thermal Management',
+      createdAt: { seconds: Date.now() / 1000 - 7200 },
+      lastActivity: '2h ago',
+      replies: 4, views: 3420, votes: 312,
+      pinned: false, hot: true
+    };
+    allReplies = [
+      { id:'r1', authorName:'Mech Guru', authorId:'user2', username:'@mech_guru', body:"Great dataset. The 18% range hit at 42°C matches what I've seen with other LFP packs. The real question is whether active cooling would bring that back to under 10%. @ev_freak did you test with the AC off vs on during charging?", createdAt:{seconds:Date.now()/1000-6800}, likes:24, liked:false, op:false },
+      { id:'r2', authorName:'EV Freak', authorId:'user1', username:'@ev_freak', body:"@mech_guru Yes — AC off during charging gives a 6% improvement in charging efficiency, but the thermal baseline is already elevated before you even start. I'll publish the AC-on vs off comparison next week.", createdAt:{seconds:Date.now()/1000-6200}, likes:18, liked:false, op:true },
+      { id:'r3', authorName:'Engineer Karan', authorId:'user3', username:'@engineer_karan', body:"This is excellent work. One thing to note — the 46°C cutoff figure is actually correct for the Gen 2 firmware (updated in March 2025). The manual is outdated. Tagging @autoxec_mod to update the community resources.", createdAt:{seconds:Date.now()/1000-4800}, likes:31, liked:false, op:false },
+      { id:'r4', authorName:'Rajasthan Rider', authorId:'user4', username:'@rajasthan_rider', body:"Running in Jaisalmer — ambient regularly hits 48°C in June. The range hit is closer to 25-28% here. Would love to contribute my data to your dataset @ev_freak — I have 4 months of logs.", createdAt:{seconds:Date.now()/1000-1800}, likes:12, liked:false, op:false },
+    ];
+    renderThread(threadData);
+    renderReplies();
+    updateThreadStats();
+  }
+
+  // RENDER THREAD
+  function renderThread(t) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('threadHeader').style.display = 'block';
+    document.getElementById('opCard').style.display = 'block';
+    document.getElementById('repliesSection').style.display = 'block';
+
+    document.getElementById('bcTitle').textContent = t.title.substring(0, 50) + (t.title.length > 50 ? '…' : '');
+    document.title = t.title + ' — AutoXec Community';
+
+    let badges = '';
+    if (t.category) badges += `<span class="badge badge-cat">${t.category}</span>`;
+    if (t.subtopic) badges += `<span class="badge badge-sub">${t.subtopic}</span>`;
+    if (t.pinned)   badges += `<span class="badge badge-pin">PINNED</span>`;
+    if (t.hot)      badges += `<span class="badge badge-hot">HOT</span>`;
+    if (t.solved)   badges += `<span class="badge badge-solved">SOLVED</span>`;
+    document.getElementById('threadBadges').innerHTML = badges;
+
+    document.getElementById('threadTitle').textContent = t.title;
+    document.getElementById('voteCount').textContent = t.votes || 0;
+    document.getElementById('threadViewCount').textContent = formatNum(t.views || 0) + ' views';
+    document.getElementById('threadDate').textContent = formatTimestamp(t.createdAt);
+    document.getElementById('sideVotes').textContent = formatNum(t.votes || 0);
+    document.getElementById('sideViews').textContent = formatNum(t.views || 0);
+
+    const initial = (t.author || 'A')[1]?.toUpperCase() || 'A';
+    document.getElementById('opCard').innerHTML = `
+    <div class="op-card ${t.pinned ? 'pinned-op' : ''}">
+      <div class="post-header">
+        <div class="post-author">
+          <div class="avatar op-avatar">${initial}</div>
+          <div class="author-info">
+            <div class="author-name">${t.author || 'Anonymous'}</div>
+            <div class="author-role">${t.pinned ? 'MODERATOR' : 'ORIGINAL POSTER'} · ${formatTimestamp(t.createdAt)}</div>
+          </div>
+        </div>
+        <div class="post-actions-top">
+          <button class="pa-btn" onclick="quotePost('${t.author || ''}', '${escapeQuote((t.body || '').substring(0, 120))}')">&#8617; Quote</button>
+          <button class="pa-btn" onclick="showToast('Reported')">Report</button>
+        </div>
+      </div>
+      <div class="post-body">
+        <div class="post-text">${renderMentions(escapeHTML(t.body || ''))}</div>
+      </div>
+      <div class="post-footer">
+        <div class="post-meta">Posted ${formatTimestamp(t.createdAt)} · ${t.category || ''} › ${t.subtopic || ''}</div>
+        <div class="post-reactions">
+          <button class="react-btn" onclick="reactToPost(this)"><span>+1</span><span class="like-count">0</span></button>
+          <button class="react-btn" onclick="reactToPost(this)"><span>Insightful</span><span class="like-count">0</span></button>
+        </div>
+      </div>
+    </div>`;
+
+    renderRelated();
+    renderActiveMembers();
+  }
+
+  // RENDER REPLIES
+  function renderReplies() {
+    const sorted = sortReplies([...allReplies]);
+    const total = sorted.length;
+    const totalPages = Math.ceil(total / REPLIES_PER_PAGE) || 1;
+    currentReplyPage = Math.min(currentReplyPage, totalPages);
+    const start = (currentReplyPage - 1) * REPLIES_PER_PAGE;
+    const page = sorted.slice(start, start + REPLIES_PER_PAGE);
+
+    document.getElementById('replyCountLabel').textContent = total;
+    document.getElementById('threadReplyCount').textContent = total + ' replies';
+    document.getElementById('sideReplies').textContent = formatNum(total);
+
+    const uniqueAuthors = new Set(allReplies.map(r => r.authorId)).size;
+    document.getElementById('sideParticipants').textContent = uniqueAuthors + 1;
+
+    const el = document.getElementById('repliesList');
+    if (!page.length) {
+      el.innerHTML = `<div style="padding:30px;text-align:center;font-size:13px;color:var(--muted)">No replies yet — be the first to respond!</div>`;
+    } else {
+      el.innerHTML = page.map((r, idx) => renderReplyCard(r, start + idx + 1)).join('');
+    }
+    renderReplyPagination(totalPages);
+  }
+
+  function renderReplyCard(r, num) {
+    const initial = (r.username || '?')[1]?.toUpperCase() || 'R';
+    const isOP = r.op || (threadData && r.authorId === threadData.authorId);
+    const quotePreview = r.quotedText ? `
+    <div class="reply-quote">
+      <div class="reply-quote-author">${r.quotedAuthor || ''} wrote:</div>
+      ${escapeHTML(r.quotedText).substring(0, 200)}${(r.quotedText?.length || 0) > 200 ? '…' : ''}
+    </div>` : '';
+    return `
+  <div class="reply-card ${isOP ? 'op-reply' : ''}" id="reply_${r.id}">
+    <div class="reply-num">#${num} ${isOP ? '<span style="color:var(--red)">· ORIGINAL POSTER</span>' : ''}</div>
+    <div class="post-header">
+      <div class="post-author">
+        <div class="avatar" style="background:${avatarColor(r.authorId || r.username)}">${initial}</div>
+        <div class="author-info">
+          <div class="author-name">${r.authorName || r.username || 'Anonymous'}</div>
+          <div class="author-role">${r.username || ''} · ${formatTimestamp(r.createdAt)}</div>
+        </div>
+      </div>
+      <div class="post-actions-top">
+        <button class="pa-btn" onclick="quoteReply('${escapeQuote(r.username || '')}','${escapeQuote((r.body || '').substring(0, 120))}')">&#8617; Quote</button>
+        <button class="pa-btn" onclick="showToast('Reported')">Report</button>
+      </div>
+    </div>
+    ${quotePreview}
+    <div class="post-body">
+      <div class="post-text">${renderMentions(escapeHTML(r.body || ''))}</div>
+    </div>
+    <div class="post-footer">
+      <div class="post-meta">${formatTimestamp(r.createdAt)}</div>
+      <div class="post-reactions">
+        <button class="react-btn ${r.liked ? 'reacted' : ''}" onclick="likeReply(this,'${r.id}')">
+          <span>+1</span><span class="like-count">${r.likes || 0}</span>
+        </button>
+      </div>
+    </div>
+  </div>`;
+  }
+
+  function sortReplies(list) {
+    if (replySort === 'newest') return list.sort((a,b) => (b.createdAt?.seconds||0)-(a.createdAt?.seconds||0));
+    if (replySort === 'top')    return list.sort((a,b) => (b.likes||0)-(a.likes||0));
+    return list.sort((a,b) => (a.createdAt?.seconds||0)-(b.createdAt?.seconds||0));
+  }
+
+  function setSortReplies(sort, btn) {
+    replySort = sort;
+    document.querySelectorAll('.rs-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderReplies();
+  }
+
+  function renderReplyPagination(total) {
+    if (total <= 1) { document.getElementById('replyPagination').innerHTML = ''; return; }
+    let html = `<button class="rp-btn" onclick="goReplyPage(${currentReplyPage-1})" ${currentReplyPage===1?'disabled':''}>&#8249;</button>`;
+    for (let i = 1; i <= total; i++) {
+      html += `<button class="rp-btn ${i===currentReplyPage?'active':''}" onclick="goReplyPage(${i})">${i}</button>`;
+    }
+    html += `<button class="rp-btn" onclick="goReplyPage(${currentReplyPage+1})" ${currentReplyPage===total?'disabled':''}>&#8250;</button>`;
+    document.getElementById('replyPagination').innerHTML = html;
+  }
+
+  function goReplyPage(n) {
+    const total = Math.ceil(allReplies.length / REPLIES_PER_PAGE) || 1;
+    if (n < 1 || n > total) return;
+    currentReplyPage = n;
+    renderReplies();
+    document.getElementById('repliesSection').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  // REPLY COMPOSER
+  let quotedText = '', quotedAuthor = '';
+
+  function renderComposer() {
+    const el = document.getElementById('composerSection');
+    if (!currentUser && db) {
+      el.innerHTML = `
+      <div class="login-prompt">
+        <div class="login-prompt-text">Log in or join to post a reply</div>
+        <button class="lp-btn" onclick="window.location='community.html'">Join Community →</button>
+      </div>`;
+      return;
+    }
+    // Fetch current @username for display
+    let displayName = 'you';
+    if (currentUser) {
+      displayName = currentUser.displayName || currentUser.email?.split('@')[0] || 'you';
+    }
+
+    const quoteSection = quotedText ? `
+    <div class="reply-quote" style="margin-bottom:12px">
+      <div class="reply-quote-author">Quoting ${quotedAuthor}:</div>
+      ${escapeHTML(quotedText).substring(0,200)}…
+      <button onclick="clearQuote()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;float:right;font-family:'JetBrains Mono',monospace">&#10005; Clear</button>
+    </div>` : '';
+
+    el.innerHTML = `
+    <div class="reply-composer">
+      <div class="rc-header">
+        <div class="rc-title">Post a Reply</div>
+        ${currentUser ? `<span style="font-size:13px;color:var(--muted)">as <span style="color:var(--purpleL)" id="composerUsername">@${displayName}</span></span>` : ''}
+      </div>
+      <div class="rc-body">
+        ${quoteSection}
+        <div style="position:relative">
+          <textarea
+            class="reply-textarea"
+            id="replyBody"
+            placeholder="Write your reply…&#10;&#10;Tip: Type @username to mention someone"
+            oninput="handleMentionInput(this)"
+            onkeydown="handleComposerKey(event)"
+            maxlength="4000"
+          ></textarea>
+          <div class="mention-popup" id="mentionPopup"></div>
+        </div>
+      </div>
+      <div class="rc-footer">
+        <div class="char-count"><span id="charCount">0</span> / 4000</div>
+        <button class="submit-reply" id="submitReplyBtn" onclick="submitReply()">POST REPLY →</button>
+      </div>
+    </div>`;
+
+    // Attach char counter
+    document.getElementById('replyBody')?.addEventListener('input', e => {
+      document.getElementById('charCount').textContent = e.target.value.length;
+    });
+
+    // Fetch actual @username from Firestore for the composer header
+    if (currentUser && db) {
+      db.collection('users').doc(currentUser.uid).get()
+        .then(doc => {
+          const uname = (doc.exists && doc.data().username)
+            ? '@' + doc.data().username
+            : '@' + (currentUser.email?.split('@')[0] || 'you');
+          const el = document.getElementById('composerUsername');
+          if (el) el.textContent = uname;
+        }).catch(() => {});
+    }
+  }
+
+  async function submitReply() {
+    if (!currentUser) { showToast("Please log in first"); return; }
+    const body = document.getElementById('replyBody')?.value.trim();
+    if (!body) { showToast("Please write something first"); return; }
+    const btn = document.getElementById('submitReplyBtn');
+    btn.disabled = true; btn.textContent = 'Posting…';
+
+    // Fetch username from Firestore
+    let username = '@' + (currentUser.displayName || currentUser.email?.split('@')[0] || 'user');
+    if (db) {
+      try {
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        if (userDoc.exists && userDoc.data().username) {
+          username = '@' + userDoc.data().username;
+        }
+      } catch(e) {}
+    }
+
+    const replyData = {
+      body,
+      authorName: currentUser.displayName || currentUser.email?.split('@')[0],
+      username,
+      authorId: currentUser.uid,
+      authorPhoto: currentUser.photoURL || '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      likes: 0, op: false,
+      ...(quotedText ? { quotedText, quotedAuthor } : {})
+    };
+    try {
+      if (db && THREAD_ID && THREAD_ID !== 'mock') {
+        await db.collection('threads').doc(THREAD_ID).collection('replies').add(replyData);
+        await db.collection('threads').doc(THREAD_ID).update({
+          replies: firebase.firestore.FieldValue.increment(1),
+          lastActivity: 'just now',
+          lastUser: username
+        });
+        await db.collection('stats').doc('community').set({
+          replies: firebase.firestore.FieldValue.increment(1)
+        }, { merge: true });
+      } else {
+        allReplies.push({ ...replyData, id: 'local_' + Date.now(), createdAt: { seconds: Date.now() / 1000 } });
+        renderReplies();
+      }
+      clearQuote();
+      document.getElementById('replyBody').value = '';
+      document.getElementById('charCount').textContent = '0';
+      showToast("Reply posted!");
+      setTimeout(() => {
+        currentReplyPage = Math.ceil(allReplies.length / REPLIES_PER_PAGE);
+        renderReplies();
+      }, 500);
+    } catch (e) {
+      showToast(e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = 'POST REPLY →';
+    }
+  }
+
+  // ═══ @MENTION SUPPORT — popup at cursor position ═══
+  const knownUsers = [
+    { username: '@ev_freak',       name: 'EV Freak' },
+    { username: '@mech_guru',      name: 'Mech Guru' },
+    { username: '@engineer_karan', name: 'Engineer Karan' },
+    { username: '@autoxec_mod',    name: 'AutoXec Mod' },
+    { username: '@rider_delhi',    name: 'Rider Delhi' },
+    { username: '@rajasthan_rider',name: 'Rajasthan Rider' },
+    { username: '@data_nerd',      name: 'Data Nerd' },
+    { username: '@thermal_eng',    name: 'Thermal Eng' },
+    { username: '@design_student', name: 'Design Student' },
+    { username: '@techie_raj',     name: 'Techie Raj' },
+  ];
+
+  // Get caret pixel position inside textarea using a mirror div
+  function getCaretPixelPos(textarea) {
+    const pos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, pos);
+    const taRect = textarea.getBoundingClientRect();
+    const cs = window.getComputedStyle(textarea);
+
+    const mirror = document.createElement('div');
+    Object.assign(mirror.style, {
+      position:    'fixed',
+      top:         taRect.top + 'px',
+      left:        taRect.left + 'px',
+      width:       textarea.offsetWidth + 'px',
+      minHeight:   textarea.offsetHeight + 'px',
+      visibility:  'hidden',
+      pointerEvents: 'none',
+      whiteSpace:  'pre-wrap',
+      wordBreak:   'break-word',
+      overflowWrap:'break-word',
+      overflow:    'hidden',
+      boxSizing:   'border-box',
+      font:        cs.font,
+      padding:     cs.padding,
+      lineHeight:  cs.lineHeight,
+      letterSpacing: cs.letterSpacing,
+    });
+
+    const textNode = document.createTextNode(textBefore);
+    mirror.appendChild(textNode);
+    const caret = document.createElement('span');
+    caret.textContent = '\u200b'; // zero-width space — marks caret position
+    mirror.appendChild(caret);
+    document.body.appendChild(mirror);
+
+    const caretRect  = caret.getBoundingClientRect();
+    document.body.removeChild(mirror);
+
+    // Return coords relative to the textarea element itself
+    const lineH = parseInt(cs.lineHeight) || 20;
+    return {
+      x: caretRect.left - taRect.left,
+      y: caretRect.top  - taRect.top + lineH + 4
+    };
+  }
+
+  function handleMentionInput(ta) {
+    const val = ta.value;
+    const cursorPos = ta.selectionStart;
+    const textBefore = val.substring(0, cursorPos);
+    const mentionMatch = textBefore.match(/@(\w*)$/);
+    const popup = document.getElementById('mentionPopup');
+    if (!popup) return;
+
+    if (mentionMatch) {
+      const q = mentionMatch[1].toLowerCase();
+      const hits = knownUsers.filter(u =>
+        u.username.toLowerCase().includes(q) || u.name.toLowerCase().includes(q)
+      ).slice(0, 6);
+
+      if (hits.length) {
+        popup.innerHTML = hits.map(u => `
+          <div class="mp-item" onmousedown="insertMentionAt('${u.username}')">
+            <span style="font-size:13px;font-weight:600;color:var(--text)">${u.name}</span>
+            <span class="mp-username">${u.username}</span>
+          </div>`).join('');
+
+        // Position popup at caret
+        const coords = getCaretPixelPos(ta);
+        // Clamp horizontally so popup doesn't overflow the wrapper
+        const maxLeft = ta.offsetWidth - 200;
+        popup.style.top  = coords.y + 'px';
+        popup.style.left = Math.max(0, Math.min(coords.x, maxLeft)) + 'px';
+        popup.classList.add('show');
+      } else {
+        popup.classList.remove('show');
+      }
+    } else {
+      popup.classList.remove('show');
+    }
+  }
+
+  function insertMentionAt(username) {
+    const ta = document.getElementById('replyBody');
+    if (!ta) return;
+    const val = ta.value;
+    const cursor = ta.selectionStart;
+    const before = val.substring(0, cursor).replace(/@\w*$/, '');
+    const after  = val.substring(cursor);
+    ta.value = before + username + ' ' + after;
+    // Move cursor after inserted mention
+    const newPos = before.length + username.length + 1;
+    ta.setSelectionRange(newPos, newPos);
+    ta.focus();
+    document.getElementById('mentionPopup')?.classList.remove('show');
+    document.getElementById('charCount').textContent = ta.value.length;
+  }
+
+  function handleComposerKey(e) {
+    if (e.key === 'Escape') document.getElementById('mentionPopup')?.classList.remove('show');
+  }
+
+  // QUOTE
+  function quotePost(author, text) {
+    quotedAuthor = author; quotedText = text;
+    renderComposer();
+    document.getElementById('replyBody')?.focus();
+  }
+
+  function quoteReply(author, text) {
+    quotedAuthor = author; quotedText = text;
+    renderComposer();
+    document.getElementById('replyBody')?.focus();
+    document.querySelector('.reply-composer')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  function clearQuote() {
+    quotedText = ''; quotedAuthor = '';
+    renderComposer();
+  }
+
+  function escapeQuote(s) {
+    return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ');
+  }
+
+  // VOTE THREAD
+  async function voteThread(dir) {
+    if (!currentUser) { showToast("Log in to vote"); return; }
+    if (userVoted) { showToast("Already voted!"); return; }
+    userVoted = true;
+    const voteEl = document.getElementById('voteCount');
+    const current = parseInt(voteEl.textContent) || 0;
+    voteEl.textContent = current + dir;
+    document.getElementById('sideVotes').textContent = formatNum(current + dir);
+    document.getElementById('upvoteBtn').classList.add('upvoted');
+    if (db && THREAD_ID && THREAD_ID !== 'mock') {
+      await db.collection('threads').doc(THREAD_ID).update({
+        votes: firebase.firestore.FieldValue.increment(dir)
+      });
+    }
+    showToast(dir > 0 ? "Upvoted!" : "Downvoted");
+  }
+
+  // LIKE REPLY
+  function likeReply(btn, replyId) {
+    const countEl = btn.querySelector('.like-count');
+    const isLiked = btn.classList.toggle('reacted');
+    const current = parseInt(countEl.textContent) || 0;
+    countEl.textContent = isLiked ? current + 1 : current - 1;
+    if (db && THREAD_ID && THREAD_ID !== 'mock' && replyId && !replyId.startsWith('local_')) {
+      db.collection('threads').doc(THREAD_ID).collection('replies').doc(replyId).update({
+        likes: firebase.firestore.FieldValue.increment(isLiked ? 1 : -1)
+      }).catch(() => {});
+    }
+  }
+
+  function reactToPost(btn) {
+    const countEl = btn.querySelector('.like-count');
+    const isReacted = btn.classList.toggle('reacted');
+    countEl.textContent = isReacted
+      ? (parseInt(countEl.textContent) || 0) + 1
+      : (parseInt(countEl.textContent) || 0) - 1;
+  }
+
+  // SIDEBAR
+  function renderRelated() {
+    const related = [
+      { title: `${SUB || 'Topic'} performance comparison — community survey results`, replies: 44, views: 1800 },
+      { title: `DIY guide: Getting started with ${SUB || 'this topic'}`, replies: 67, views: 3200 },
+      { title: `Official resources and documentation for ${CAT || 'this category'}`, replies: 12, views: 980 },
+    ];
+    document.getElementById('relatedThreads').innerHTML = related.map(r => `
+    <div class="related-item" onclick="showToast('Opening thread…')">
+      <div class="ri-title">${r.title}</div>
+      <div class="ri-meta">${r.replies} replies · ${formatNum(r.views)} views</div>
+    </div>`).join('');
+  }
+
+  function renderActiveMembers() {
+    const members = ['@ev_freak','@mech_guru','@engineer_karan','@rajasthan_rider'].map(u => ({
+      name: u.substring(1), username: u,
+      posts: Math.floor(Math.random() * 50) + 5,
+      online: Math.random() > .4
+    }));
+    document.getElementById('activeMembersList').innerHTML = members.map(m => `
+    <div class="member-row">
+      <div class="member-avatar">${m.name[0].toUpperCase()}</div>
+      <div>
+        <div class="member-name">${m.online ? '<span class="online-dot"></span>' : ''}${m.name}</div>
+        <div class="member-stat">${m.username} · ${m.posts} posts</div>
+      </div>
+    </div>`).join('');
+  }
+
+  function updateThreadStats() {
+    if (!threadData) return;
+    document.getElementById('sideReplies').textContent = formatNum(allReplies.length);
+  }
+
+  // SHARE FUNCTIONS
+  function copyLink() {
+    navigator.clipboard?.writeText(window.location.href)
+      .then(() => showToast('Link copied!'))
+      .catch(() => showToast('Copy the URL from the address bar'));
+  }
+
+  function shareTwitter() {
+    const text = encodeURIComponent((threadData?.title || 'Check this thread') + ' — AutoXec Community');
+    const url  = encodeURIComponent(window.location.href);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank');
+  }
+
+  function shareWhatsApp() {
+    const text = encodeURIComponent((threadData?.title || 'Check this thread') + '\n' + window.location.href);
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  }
+
+  // UTILS
+  function renderMentions(text) {
+    return text.replace(/@(\w+)/g, '<span class="mention" onclick="showToast(\'Viewing @$1 profile…\')">@$1</span>');
+  }
+
+  function escapeHTML(s) {
+    if (!s) return '';
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function formatTimestamp(ts) {
+    if (!ts) return 'Unknown';
+    const seconds = ts.seconds || ts._seconds || Math.floor(new Date(ts) / 1000);
+    const diff = Math.floor(Date.now() / 1000) - seconds;
+    if (diff < 60)     return 'just now';
+    if (diff < 3600)   return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400)  return Math.floor(diff / 3600) + 'h ago';
+    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+    return new Date(seconds * 1000).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  }
+
+  function avatarColor(seed) {
+    const colors = [
+      'linear-gradient(135deg,#6B3FA0,#C0000A)',
+      'linear-gradient(135deg,#0D4B8A,#1A7A3C)',
+      'linear-gradient(135deg,#A06010,#6B3FA0)',
+      'linear-gradient(135deg,#0A6060,#0D4B8A)'
+    ];
+    let hash = 0; for (const c of (seed || 'x')) hash += c.charCodeAt(0);
+    return colors[hash % colors.length];
+  }
+
+  function formatNum(n) {
+    if (n >= 1000000) return (n/1000000).toFixed(1)+'M';
+    if (n >= 1000)    return (n/1000).toFixed(1)+'K';
+    return String(n);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  function showError(msg) {
+    document.getElementById('loadingState').innerHTML = `<div style="color:var(--muted)">${msg}</div>`;
+  }
+
+  window.addEventListener('beforeunload', () => { if (unsubscribeReplies) unsubscribeReplies(); });
+</script>
+</body>
+</html>
